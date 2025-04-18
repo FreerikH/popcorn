@@ -72,7 +72,7 @@ const getApiBaseUrl = (): string => {
                        !window.location.hostname.includes('127.0.0.1');
   
   if (isProduction) {
-    return '/app/movie'; // Production API path
+    return '/api/movie'; // Production API path
   } else {
     return 'http://127.0.0.1:8000/api/movie'; // Development API path
   }
