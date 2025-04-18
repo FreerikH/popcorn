@@ -65,6 +65,19 @@ const emptyMovie: MovieData = {
   release_date: '',
 };
 
+// Get the appropriate API base URL depending on the environment
+const getApiBaseUrl = (): string => {
+  // Check if we're running in production by examining the current URL
+  const isProduction = !window.location.hostname.includes('localhost') && 
+                       !window.location.hostname.includes('127.0.0.1');
+  
+  if (isProduction) {
+    return '/app/movie'; // Production API path
+  } else {
+    return 'http://127.0.0.1:8000/api/movie'; // Development API path
+  }
+};
+
 function App() {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -150,7 +163,7 @@ function App() {
         rating: selectionToRating[selectionValue]
       };
 
-      const response = await fetch('http://127.0.0.1:8000/api/movie', {
+      const response = await fetch(getApiBaseUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +221,7 @@ function App() {
     
     while (currentRetry < maxRetries) {
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/movie');
+        const response = await fetch(getApiBaseUrl());
         
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
