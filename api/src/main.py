@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uvicorn
 import os
-from services import API, DB
+from .services import API, DB
 
 app = FastAPI()
 
