@@ -10,13 +10,11 @@ import {
   useTheme
 } from '@mui/material';
 
-
 // Import our Navbar component
 import Navbar from './components/navbar/Navbar';
 
-// Import our new MovieCard component
+// Import our MovieCard component
 import MovieCard from './components/MovieCard';
-
 
 // Define user type
 interface User {
@@ -296,54 +294,78 @@ function App() {
     setSnackbar({...snackbar, open: false});
   };
 
-  // Add a style to the root element to prevent scrolling
+  // Prevent scrolling on the body
   useEffect(() => {
-    document.documentElement.style.overflow = 'hidden';
+    // Apply these styles to prevent scrolling
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    document.documentElement.style.overflow = 'hidden';
     
-    // Cleanup when component unmounts
     return () => {
-      document.documentElement.style.overflow = '';
+      // Clean up styles when component unmounts
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.documentElement.style.overflow = '';
     };
   }, []);
+
+  // Height of navbar and button container
+  const navbarHeight = 42; // AppBar default height
+  const buttonHeight = isVerySmallScreen ? 48 : 56; //works perfect on mobile but has whitespace below button on laptop
+
+  console.log('buttonHeight', isVerySmallScreen, buttonHeight)
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       
-      {/* Root container with fixed height */}
+      {/* Root container that takes exactly 100% of the viewport height */}
       <Box sx={{ 
-        height: '100vh', 
-        width: '100vw', 
+        height: '100vh',
+        width: '100vw',
+        maxHeight: '100vh', // Restrict to exactly viewport height
         display: 'flex', 
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden', // Hide any overflow
+        position: 'fixed', // Fix in place (no scrolling)
+        top: 0,
+        left: 0,
+        //border: '1px solid red'
       }}>
-        {/* Using our Navbar component */}
-        <Navbar 
-          users={users}
-          selectedUser={selectedUser}
-          onSelectUser={handleUserSelect}
-        />
+        {/* Navbar with fixed height */}
+        <Box sx={{ 
+          height: navbarHeight,
+          flexShrink: 0, // Don't allow navbar to shrink
+        }}>
+          <Navbar 
+            users={users}
+            selectedUser={selectedUser}
+            onSelectUser={handleUserSelect}
+          />
+        </Box>
         
-        {/* Main content area that takes remaining height with no overflow */}
-        <Container 
-          maxWidth="sm" 
-          sx={{ 
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            p: 0
-          }}
-        >
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            overflow: 'auto',
-            flexGrow: 1,
-          }}>
+        {/* Content container that takes exactly the remaining space */}
+        <Box sx={{
+          height: `calc(100vh - ${navbarHeight}px - ${buttonHeight}px)`,
+          maxHeight: `calc(100vh - ${navbarHeight}px - ${buttonHeight}px)`,
+          //height: `calc(100vh - ${navbarHeight}px)`,
+          //maxHeight: `calc(100vh - ${navbarHeight}px)`,
+          width: '100%',
+          overflow: 'hidden', // Hide any overflow
+          flexShrink: 0, // Don't allow content to shrink
+          //border: '1px solid blue',
+        }}>
+          <Container 
+            maxWidth="sm" 
+            sx={{ 
+              height: '100%',
+              padding: 0,
+            }}
+          >
             <MovieCard
               movieData={movieData || emptyMovie}
               loading={loading}
@@ -353,10 +375,10 @@ function App() {
               isSmallScreen={isSmallScreen}
               isVerySmallScreen={isVerySmallScreen}
             />
-          </Box>
-        </Container>
+          </Container>
+        </Box>
 
-        {/* Feedback Snackbar - Now at the top */}
+        {/* Feedback Snackbar - Always at the top */}
         <Snackbar 
           open={snackbar.open} 
           autoHideDuration={4000} 

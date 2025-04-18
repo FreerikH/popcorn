@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Card,
   CardMedia,
   Typography,
   Box,
@@ -92,25 +91,79 @@ const MovieCard: React.FC<MovieCardProps> = ({
   
   if (loading) {
     return (
-      <Card sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: 200 }}>
-        <CircularProgress />
-      </Card>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        height: '100%',
+        width: '100%',
+      }}>
+        <Box sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <CircularProgress />
+        </Box>
+        {/* Empty placeholder for buttons to maintain layout */}
+        <Box sx={{ 
+          height: isVerySmallScreen ? 48 : 56,
+          width: '100%',
+          flexShrink: 0,
+        }} />
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <Card sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: 200 }}>
-        <Typography color="error">{error}</Typography>
-      </Card>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        height: '100%',
+        width: '100%',
+      }}>
+        <Box sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+        {/* Empty placeholder for buttons to maintain layout */}
+        <Box sx={{ 
+          height: isVerySmallScreen ? 48 : 56,
+          width: '100%',
+          flexShrink: 0,
+        }} />
+      </Box>
     );
   }
 
   if (!movieData) {
     return (
-      <Card sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: 200 }}>
-        <Typography>No movie data available</Typography>
-      </Card>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        height: '100%',
+        width: '100%',
+      }}>
+        <Box sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <Typography>No movie data available</Typography>
+        </Box>
+        {/* Empty placeholder for buttons to maintain layout */}
+        <Box sx={{ 
+          height: isVerySmallScreen ? 48 : 56,
+          width: '100%',
+          flexShrink: 0,
+        }} />
+      </Box>
     );
   }
 
@@ -120,24 +173,24 @@ const MovieCard: React.FC<MovieCardProps> = ({
     ? `${movieData.overview.substring(0, overviewCharLimit)}...` 
     : movieData.overview;
 
+  //const buttonHeight = isVerySmallScreen ? 48 : 56; //works good for mobile, whitespace for laptop
+  const buttonHeight = isVerySmallScreen ? 48 : 56;
+
   return (
-    <Card 
-      sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-        position: 'relative',
-        borderRadius: 0 // Remove border radius from the card
-      }}
-    >
-      {/* Movie Poster as Background */}
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      height: '100%',
+      width: '100%',
+      //border: '1px solid green'
+    }}>
+      {/* Content Area */}
       <Box sx={{ 
-        position: 'relative',
-        width: '100%',
         flex: 1,
+        position: 'relative',
         overflow: 'hidden',
       }}>
+        {/* Movie Poster Background */}
         <CardMedia
           component="img"
           image={getPosterUrl(movieData.poster_path)}
@@ -149,11 +202,10 @@ const MovieCard: React.FC<MovieCardProps> = ({
             position: 'absolute',
             top: 0,
             left: 0,
-            borderRadius: 0 // Explicitly remove any border radius
           }}
         />
         
-        {/* Overlay Gradient - Only visible when showOverlay is true */}
+        {/* Overlay Gradient */}
         {showOverlay && (
           <Box sx={{
             position: 'absolute',
@@ -162,12 +214,11 @@ const MovieCard: React.FC<MovieCardProps> = ({
             width: '100%',
             height: '100%',
             background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%)',
-            zIndex: 1,
-            transition: 'opacity 0.3s ease'
+            zIndex: 1
           }}/>
         )}
         
-        {/* Fullscreen Toggle Button - Changes icon based on overlay state */}
+        {/* Fullscreen Toggle Button */}
         <IconButton
           onClick={handleToggleOverlay}
           sx={{
@@ -229,7 +280,7 @@ const MovieCard: React.FC<MovieCardProps> = ({
           </DialogContent>
         </Dialog>
         
-        {/* Movie Details Overlay - Only visible when showOverlay is true */}
+        {/* Movie Details */}
         {showOverlay && (
           <Box sx={{ 
             position: 'absolute',
@@ -238,7 +289,8 @@ const MovieCard: React.FC<MovieCardProps> = ({
             width: '100%',
             padding: isVerySmallScreen ? 1.5 : 2,
             zIndex: 2,
-            transition: 'opacity 0.3s ease'
+            maxHeight: '50%',
+            overflow: 'auto'
           }}>
             <Typography 
               variant={isVerySmallScreen ? "h6" : "h5"} 
@@ -263,17 +315,13 @@ const MovieCard: React.FC<MovieCardProps> = ({
               }}>
               <Typography 
                 variant="body2" 
-                sx={{ 
-                  fontWeight: 'medium',
-                }}
+                sx={{ fontWeight: 'medium' }}
               >
                 {movieData.release_date && new Date(movieData.release_date).getFullYear()}
               </Typography>
               <Typography 
                 variant="body2" 
-                sx={{ 
-                  fontWeight: 'medium',
-                }}
+                sx={{ fontWeight: 'medium' }}
               >
                 {movieData.runtime && `${movieData.runtime} min`}
               </Typography>
@@ -308,8 +356,6 @@ const MovieCard: React.FC<MovieCardProps> = ({
                   color: 'white',
                   opacity: 0.85,
                   lineHeight: 1.4,
-                  overflow: expanded ? 'visible' : 'hidden',
-                  transition: 'max-height 0.3s ease'
                 }}
               >
                 {truncatedOverview}
@@ -350,13 +396,16 @@ const MovieCard: React.FC<MovieCardProps> = ({
         )}
       </Box>
       
-      {/* Rating Buttons - Always at the bottom */}
+      {/* Rating Buttons - Now completely separate from the card */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between',
         backgroundColor: 'white',
         borderTop: '1px solid rgba(0,0,0,0.1)',
-        height: isVerySmallScreen ? 48 : 56
+        height: buttonHeight,
+        minHeight: buttonHeight,
+        width: '100%',
+        flexShrink: 0, // Don't allow this box to shrink
       }}>
         <Box 
           sx={{ 
@@ -438,7 +487,7 @@ const MovieCard: React.FC<MovieCardProps> = ({
           </Typography>
         </Box>
       </Box>
-    </Card>
+    </Box>
   );
 };
 

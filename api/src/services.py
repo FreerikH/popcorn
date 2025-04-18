@@ -17,7 +17,7 @@ class API:
     
     def get_movie(self, movie_id = None):
         if movie_id is None:
-            movie_id = random.randint(1, 100)
+            movie_id = random.randint(1, 10000)
         url = self.movie_url + str(movie_id)
         response = requests.get(url, headers = self.headers)
         response_json = response.json()
