@@ -49,49 +49,77 @@ const Navbar: React.FC<NavbarProps> = ({ users, selectedUser, onSelectUser }) =>
     <AppBar 
       position="sticky" 
       sx={{ 
-        backgroundColor: 'white',
-        color: 'text.primary',
-        boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.1)',
+        backgroundColor: theme.palette.secondary.main, // Dark background like the logo
+        color: 'white',
+        boxShadow: 'none', // Removed shadow
         borderTop: '2px solid',
-        borderTopColor: theme.palette.primary.main, // Using our darker red from theme
-        height: '42px', // Smaller height for the AppBar
+        borderTopColor: theme.palette.primary.main, // Golden yellow from the logo
+        height: '50px', // Slightly taller for the AppBar
       }}
     >
-      <Toolbar variant="dense" sx={{ minHeight: '42px', px: 2, }}>
+      <Toolbar variant="dense" sx={{ minHeight: '50px', px: 2 }}>
         <Box 
           sx={{ 
             flexGrow: 1,
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 1
           }}
         >
-          <Typography 
-            variant="subtitle1" 
-            component="div" 
-            sx={{ 
-              fontWeight: 600,
-              color: theme.palette.primary.main, // Using our darker red for title
-              lineHeight: 1.1,
-              fontSize: '1.05rem'
+          {/* Actual logo image */}
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            Popcorn
-          </Typography>
-          <Typography 
-            variant="caption" 
-            component="div" 
-            sx={{ 
-              fontWeight: 400,
-              color: 'text.secondary',
-              fontSize: '0.65rem',
-              letterSpacing: '0.4px'
-            }}
-          >
-            no you pick
-          </Typography>
+            <Box
+              component="img"
+              src="/src/icon_black.png"
+              alt="Popcorn Logo"
+              sx={{
+                width: 50, // slightly larger than the container
+                height: 50,
+                objectFit: 'cover',
+              }}
+            />
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography
+              variant="subtitle1"
+              component="div"
+              sx={{
+                fontWeight: 600,
+                color: theme.palette.primary.main, // Golden yellow
+                lineHeight: 1.1,
+                fontSize: '1.1rem'
+              }}
+            >
+              Popcorn
+            </Typography>
+            <Typography
+              variant="caption"
+              component="div"
+              sx={{
+                fontWeight: 400,
+                color: theme.palette.primary.main, //alpha('#FFFFFF', 0.7),
+                fontSize: '0.7rem',
+                letterSpacing: '0.5px',
+                lineHeight: 1,
+              }}
+            >
+              no<span style={{ color: alpha('#FFFFFF', 0.5) }}>w</span> you pick
+            </Typography>
+          </Box>
         </Box>
        
-        {/* User Dropdown - Modified to fill full height with square corners */}
+        {/* User Dropdown */}
         <Button
           onClick={handleMenuOpen}
           color="inherit"
@@ -100,11 +128,11 @@ const Navbar: React.FC<NavbarProps> = ({ users, selectedUser, onSelectUser }) =>
             textTransform: 'none',
             borderRadius: 0, // Removed rounded corners
             padding: '4px 12px',
-            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+            backgroundColor: alpha('#000000', 0.3),
             height: '42px', // Match the height of the AppBar
             marginRight: '-16px', // Extend to the right edge
             '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.08)
+              backgroundColor: alpha('#000000', 0.5)
             },
             transition: 'background-color 250ms cubic-bezier(0.4, 0, 0.2, 1)'
           }}
@@ -114,10 +142,12 @@ const Navbar: React.FC<NavbarProps> = ({ users, selectedUser, onSelectUser }) =>
               sx={{
                 width: 28,
                 height: 28,
-                bgcolor: theme.palette.primary.main, // Using our darker red from theme
+                bgcolor: theme.palette.primary.main, // Golden yellow
+                color: 'black',
                 fontSize: '0.85rem',
-                boxShadow: '0 1px 2px 0 rgba(0,0,0,0.1)',
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.8)}`
+                fontWeight: 600,
+                boxShadow: '0 1px 3px 0 rgba(0,0,0,0.2)',
+                border: `1px solid ${alpha(theme.palette.primary.light, 0.8)}`
               }}
             >
               {selectedUser?.avatar || ''}
@@ -149,10 +179,12 @@ const Navbar: React.FC<NavbarProps> = ({ users, selectedUser, onSelectUser }) =>
             elevation: 4,
             sx: {
               mt: 0.5,
-              borderRadius: 0, // Removed rounded corners from dropdown menu
+              borderRadius: 2, // Slightly rounded corners
               minWidth: '180px',
               overflow: 'visible',
               filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
+              bgcolor: theme.palette.secondary.light, // Dark background
+              color: 'white',
               '&:before': {
                 content: '""',
                 display: 'block',
@@ -161,7 +193,7 @@ const Navbar: React.FC<NavbarProps> = ({ users, selectedUser, onSelectUser }) =>
                 right: 14,
                 width: 10,
                 height: 10,
-                bgcolor: 'background.paper',
+                bgcolor: theme.palette.secondary.light,
                 transform: 'translateY(-50%) rotate(45deg)',
                 zIndex: 0,
               },
@@ -181,13 +213,13 @@ const Navbar: React.FC<NavbarProps> = ({ users, selectedUser, onSelectUser }) =>
                 px: 2,
                 minHeight: '40px',
                 '&.Mui-selected': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                  backgroundColor: alpha(theme.palette.primary.main, 0.2),
                   '&:hover': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.12)
+                    backgroundColor: alpha(theme.palette.primary.main, 0.3)
                   }
                 },
                 '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.04)
+                  backgroundColor: alpha(theme.palette.primary.main, 0.1)
                 }
               }}
             >
@@ -199,7 +231,9 @@ const Navbar: React.FC<NavbarProps> = ({ users, selectedUser, onSelectUser }) =>
                     bgcolor: selectedUser.id === user.id 
                       ? theme.palette.primary.main
                       : alpha(theme.palette.primary.main, 0.7),
+                    color: 'black',
                     fontSize: '0.7rem',
+                    fontWeight: 600,
                     boxShadow: '0 1px 2px 0 rgba(0,0,0,0.08)'
                   }}
                 >

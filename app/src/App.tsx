@@ -6,9 +6,11 @@ import {
   CssBaseline,
   Snackbar,
   Alert,
-  useMediaQuery,
-  useTheme
+  useMediaQuery
 } from '@mui/material';
+
+// Import your custom theme
+import theme from './theme'; // Make sure path is correct
 
 // Import our Navbar component
 import Navbar from './components/navbar/Navbar';
@@ -77,7 +79,7 @@ const getApiBaseUrl = (): string => {
 };
 
 function App() {
-  const theme = useTheme();
+  // Use useMediaQuery directly with the custom theme
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isVerySmallScreen = useMediaQuery('(max-height: 600px)');
   
@@ -141,8 +143,8 @@ function App() {
     };
   };
 
-  // Function to submit rating
-  const submitRating = async (selectionValue: NonNullable<SelectionType>) => {
+  // Updated submitRating function for instantaneous movie switching
+  const submitRating = (selectionValue: NonNullable<SelectionType>) => {
     if (!movieData || !movieData.id) {
       setSnackbar({
         open: true,
@@ -152,67 +154,58 @@ function App() {
       return;
     }
 
+    // Store the current movie data for the API call
+    const movieToRate = movieData;
+    
+    // Immediately update UI to show the next movie
+    if (nextMovieData) {
+      setMovieData(nextMovieData);
+      setNextMovieData(null);
+      
+      // Start preloading the next movie right away
+      preloadNextMovie();
+    } else {
+      // If no preloaded movie, start loading the next one
+      setLoading(true);
+      fetchNextMovie();
+    }
+    
+    // Submit the rating in the background
     setSubmitting(true);
+    
+    const payload = {
+      user_id: selectedUser.id,
+      movie_id: movieToRate.id,
+      rating: selectionToRating[selectionValue]
+    };
 
-    try {
-      const payload = {
-        user_id: selectedUser.id,
-        movie_id: movieData.id,
-        rating: selectionToRating[selectionValue]
-      };
-
-      const response = await fetch(getApiBaseUrl(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
+    fetch(getApiBaseUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    .then(response => {
       if (!response.ok) {
         throw new Error(`Failed to submit rating: ${response.status}`);
       }
-
-      // Use the preloaded movie if available
-      if (nextMovieData) {
-        setMovieData(nextMovieData);
-        setNextMovieData(null); // Clear preloaded movie
-        setLoading(false);
-        
-        // Immediately start preloading the next movie for future use
-        preloadNextMovie();
-      } else {
-        // Fallback to normal fetch if preloaded movie isn't available
-        fetchNextMovie();
-      }
-    } catch (err) {
+      return response.json();
+    })
+    .catch(err => {
       console.error('Error submitting rating:', err);
       setSnackbar({
         open: true,
-        message: 'Failed to submit rating. Please try again.',
+        message: 'Failed to submit rating, but we moved to the next movie.',
         severity: 'error'
       });
-    } finally {
+    })
+    .finally(() => {
       setSubmitting(false);
-    }
+    });
   };
 
-  // Function to preload the next movie
-  const preloadNextMovie = async () => {
-    try {
-      debug('Preloading next movie', {});
-      const data = await fetchMovieFromAPI();
-      if (data) {
-        setNextMovieData(data);
-        debug('Successfully preloaded next movie', data);
-      }
-    } catch (err) {
-      console.error('Error preloading next movie:', err);
-      // We don't show an error to the user for preloading failures
-    }
-  };
-
-  // Helper function to fetch a movie from the API
+  // Helper function to fetch a movie from the API with silent retry for status code 34
   const fetchMovieFromAPI = async (): Promise<MovieData | null> => {
     let maxRetries = 3; // Maximum number of retry attempts
     let currentRetry = 0;
@@ -229,17 +222,22 @@ function App() {
         
         // Check if the response contains an error message despite 200 status
         if (data.success === false || data.status_code === 34) {
-          debug('API returned error in response body', data);
+          // Log to console but don't display to user
+          console.log(`[DEBUG] API returned error in response body:`, data);
           
           // Increment retry counter
           currentRetry++;
           
           if (currentRetry >= maxRetries) {
-            throw new Error(`API returned error: ${data.status_message || 'Resource not found'}`);
+            // Instead of throwing an error, return null and let the calling function handle it silently
+            console.log(`Exhausted retries for status code 34 error. Moving on silently.`);
+            return null;
           }
           
           // Wait a moment before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * currentRetry));
+          const delay = 1000 * currentRetry;
+          console.log(`Silently retrying after ${delay}ms (attempt ${currentRetry} of ${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
           continue; // Skip to next iteration of the while loop
         }
         
@@ -264,6 +262,38 @@ function App() {
     return null;
   };
 
+  // Function to preload the next movie
+  const preloadNextMovie = async () => {
+    try {
+      debug('Preloading next movie', {});
+      const data = await fetchMovieFromAPI();
+      if (data) {
+        setNextMovieData(data);
+        debug('Successfully preloaded next movie', data);
+      } else {
+        // If data is null, it might be because of a status code 34 error that we're handling silently
+        // Try one more time without showing an error to the user
+        console.log("Received null when preloading, trying again silently");
+        
+        // Wait a second before trying again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const retryData = await fetchMovieFromAPI();
+        
+        if (retryData) {
+          setNextMovieData(retryData);
+          debug('Successfully preloaded next movie after retry', retryData);
+        } else {
+          // Still no data after retry, but we'll continue silently
+          console.log('Failed to preload next movie after silent retry');
+          // Leave nextMovieData as null - we'll load when needed
+        }
+      }
+    } catch (err) {
+      console.error('Error preloading next movie:', err);
+      // We don't show an error to the user for preloading failures, regardless of error type
+    }
+  };
+
   // Function to fetch the next movie with improved error handling
   const fetchNextMovie = async () => {
     setLoading(true);
@@ -275,16 +305,44 @@ function App() {
         setMovieData(data);
         setError(null);
       } else {
-        throw new Error('Failed to fetch movie data');
+        // If data is null, it might be because of a status code 34 error that we're handling silently
+        // Try one more time without showing an error to the user
+        console.log("Received null from fetchMovieFromAPI, trying again silently");
+        
+        // Wait a second before trying again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const retryData = await fetchMovieFromAPI();
+        
+        if (retryData) {
+          setMovieData(retryData);
+          setError(null);
+        } else {
+          // Still no data after retry, but we'll continue silently without showing an error
+          console.error('Failed to fetch movie data after silent retry');
+          // Keep the previous movie data if available, otherwise use empty movie
+          if (!movieData) {
+            setMovieData(emptyMovie);
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching next movie:', err);
-      setError('Failed to load next movie. Please try again later.');
-      setSnackbar({
-        open: true,
-        message: 'Failed to load next movie. Please try again later.',
-        severity: 'error'
-      });
+      // Only show error to user if it's not a status code 34 error
+      if (err instanceof Error && !err.message.includes('status_code: 34')) {
+        setError('Failed to load next movie. Please try again later.');
+        setSnackbar({
+          open: true,
+          message: 'Failed to load next movie. Please try again later.',
+          severity: 'error'
+        });
+      } else {
+        // For status code 34 errors, log to console but don't show to user
+        console.log('Silent error (status code 34) when fetching next movie');
+        // Keep the previous movie data if available
+        if (!movieData) {
+          setMovieData(emptyMovie);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -334,6 +392,7 @@ function App() {
         position: 'fixed', // Fix in place (no scrolling)
         top: 0,
         left: 0,
+        backgroundColor: theme.palette.secondary.main,
         //border: '1px solid red'
       }}>
         {/* Navbar with fixed height */}

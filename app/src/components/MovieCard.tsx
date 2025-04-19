@@ -15,6 +15,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import theme from '../theme'; // Import the theme to use its colors
 
 // Define a type for genre which can be either a string or an object with id and name
 type Genre = string | { id: number; name: string };
@@ -173,7 +174,6 @@ const MovieCard: React.FC<MovieCardProps> = ({
     ? `${movieData.overview.substring(0, overviewCharLimit)}...` 
     : movieData.overview;
 
-  //const buttonHeight = isVerySmallScreen ? 48 : 56; //works good for mobile, whitespace for laptop
   const buttonHeight = isVerySmallScreen ? 48 : 56;
 
   return (
@@ -182,7 +182,6 @@ const MovieCard: React.FC<MovieCardProps> = ({
       flexDirection: 'column',
       height: '100%',
       width: '100%',
-      //border: '1px solid green'
     }}>
       {/* Content Area */}
       <Box sx={{ 
@@ -369,10 +368,9 @@ const MovieCard: React.FC<MovieCardProps> = ({
                     alignItems: 'center', 
                     cursor: 'pointer',
                     mt: 0.5,
-                    color: 'white',
-                    opacity: 0.8,
+                    color: theme.palette.primary.main, // Changed to primary color (gold)
                     '&:hover': {
-                      opacity: 1,
+                      opacity: 0.9,
                     }
                   }}
                 >
@@ -396,16 +394,15 @@ const MovieCard: React.FC<MovieCardProps> = ({
         )}
       </Box>
       
-      {/* Rating Buttons - Now completely separate from the card */}
+      {/* Rating Buttons - Now in theme colors */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between',
-        backgroundColor: 'white',
-        borderTop: '1px solid rgba(0,0,0,0.1)',
+        backgroundColor: theme.palette.secondary.main, // Changed to secondary color (black)
         height: buttonHeight,
         minHeight: buttonHeight,
         width: '100%',
-        flexShrink: 0, // Don't allow this box to shrink
+        flexShrink: 0,
       }}>
         <Box 
           sx={{ 
@@ -415,20 +412,26 @@ const MovieCard: React.FC<MovieCardProps> = ({
             justifyContent: 'center',
             width: '33.33%',
             cursor: 'pointer',
-            backgroundColor: 'rgba(244, 67, 54, 0.05)', // Light red background
+            backgroundColor: theme.palette.secondary.main, // Dark background
             transition: 'background-color 0.2s',
             '&:hover': {
-              backgroundColor: 'rgba(244, 67, 54, 0.15)'
+              backgroundColor: theme.palette.secondary.light
             },
-            borderRight: '1px solid rgba(0,0,0,0.05)'
+            borderRight: `1px solid ${theme.palette.secondary.light}`,
           }}
           onClick={() => onSubmitRating('no')}
         >
-          <CloseIcon fontSize={isVerySmallScreen ? "small" : "medium"} color="error" />
+          <CloseIcon 
+            fontSize={isVerySmallScreen ? "small" : "medium"} 
+            sx={{ color: '#FF4D4F' }} // Keep red for negative action
+          />
           <Typography 
             variant="caption" 
-            color="error"
-            sx={{ mt: 0.5, fontSize: isVerySmallScreen ? '0.65rem' : '0.75rem' }}
+            sx={{ 
+              mt: 0.5, 
+              fontSize: isVerySmallScreen ? '0.65rem' : '0.75rem',
+              color: '#FF4D4F' // Keep red for negative action
+            }}
           >
             Skip
           </Typography>
@@ -442,20 +445,26 @@ const MovieCard: React.FC<MovieCardProps> = ({
             justifyContent: 'center',
             width: '33.33%',
             cursor: 'pointer',
-            backgroundColor: 'rgba(3, 169, 244, 0.05)', // Light blue background
+            backgroundColor: theme.palette.secondary.main, // Dark background
             transition: 'background-color 0.2s',
             '&:hover': {
-              backgroundColor: 'rgba(3, 169, 244, 0.15)'
+              backgroundColor: theme.palette.secondary.light
             },
-            borderRight: '1px solid rgba(0,0,0,0.05)'
+            borderRight: `1px solid ${theme.palette.secondary.light}`,
           }}
           onClick={() => onSubmitRating('maybe')}
         >
-          <HelpOutlineIcon fontSize={isVerySmallScreen ? "small" : "medium"} color="info" />
+          <HelpOutlineIcon 
+            fontSize={isVerySmallScreen ? "small" : "medium"} 
+            sx={{ color: 'white' }} // White for neutral action
+          />
           <Typography 
             variant="caption" 
-            color="info.main"
-            sx={{ mt: 0.5, fontSize: isVerySmallScreen ? '0.65rem' : '0.75rem' }}
+            sx={{ 
+              mt: 0.5, 
+              fontSize: isVerySmallScreen ? '0.65rem' : '0.75rem',
+              color: 'white' // White for neutral action
+            }}
           >
             Maybe
           </Typography>
@@ -469,19 +478,25 @@ const MovieCard: React.FC<MovieCardProps> = ({
             justifyContent: 'center',
             width: '33.33%',
             cursor: 'pointer',
-            backgroundColor: 'rgba(76, 175, 80, 0.05)', // Light green background
+            backgroundColor: theme.palette.secondary.main, // Dark background
             transition: 'background-color 0.2s',
             '&:hover': {
-              backgroundColor: 'rgba(76, 175, 80, 0.15)'
+              backgroundColor: theme.palette.secondary.light
             }
           }}
           onClick={() => onSubmitRating('yes')}
         >
-          <CheckIcon fontSize={isVerySmallScreen ? "small" : "medium"} color="success" />
+          <CheckIcon 
+            fontSize={isVerySmallScreen ? "small" : "medium"} 
+            sx={{ color: theme.palette.primary.main }} // Gold for positive action
+          />
           <Typography 
             variant="caption" 
-            color="success.main"
-            sx={{ mt: 0.5, fontSize: isVerySmallScreen ? '0.65rem' : '0.75rem' }}
+            sx={{ 
+              mt: 0.5, 
+              fontSize: isVerySmallScreen ? '0.65rem' : '0.75rem',
+              color: theme.palette.primary.main // Gold for positive action
+            }}
           >
             Watch
           </Typography>

@@ -21,17 +21,17 @@ declare module '@mui/material/styles' {
 const theme = createTheme({
   palette: {
     primary: {
-      // Main primary color - popcorn buttery color
-      main: '#F8E3A3', // Buttery popcorn yellow
-      light: '#FFF9D6',
-      dark: '#E6C76A',
-      contrastText: '#2C2C2C', // Dark text for contrast on light background
+      // Main primary color - popcorn gold from logo
+      main: '#FFCC33', // Golden yellow from the logo
+      light: '#FFE07A',
+      dark: '#E6A800',
+      contrastText: '#000000', // Black text for contrast on light background
     },
     secondary: {
-      // Secondary color - complementary to popcorn
-      main: '#6E5C41', // Darker brown that complements popcorn
-      light: '#9C8A6E',
-      dark: '#483D2A',
+      // Secondary color - black from logo background
+      main: '#1A1A1A', // Dark background color
+      light: '#2C2C2C',
+      dark: '#000000',
       contrastText: '#FFFFFF',
     },
     // You can customize other palette colors too
@@ -49,13 +49,13 @@ const theme = createTheme({
     },
     // You can also customize text colors
     text: {
-      primary: '#2C2C2C',
-      secondary: '#5C5C5C',
+      primary: '#000000',
+      secondary: '#4A4A4A',
       disabled: '#9E9E9E',
     },
     // Background colors
     background: {
-      default: '#FFFBEE', // Very light cream background
+      default: '#FFFFFF', // Clean white background to make the black/gold pop
       paper: '#FFFFFF',
     },
   },
