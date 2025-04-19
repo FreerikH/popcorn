@@ -25,7 +25,8 @@ class API:
             return response_json
 
         # url is directly resolved
-        response_json['poster_path'] = self.image_url + response_json['poster_path']
+        if not response_json['poster_path'] is None:
+            response_json['poster_path'] = self.image_url + response_json['poster_path']
 
         return response_json
 
