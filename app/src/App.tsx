@@ -22,6 +22,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ element }) => {
   return isAuthenticated ? <>{element}</> : <Navigate to="/" />;
 };
 
+const containerHeight = 'calc(var(--vh, 1vh) * 100 - 0px)';
+
 const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
@@ -29,7 +31,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <ApiProvider> {/* Wrap your app with ApiProvider */}
           <Router>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: containerHeight/*'100vh'*/ }}>
               <Navbar />
               <Box component="main" sx={{ flexGrow: 1}}>
                 <Routes>

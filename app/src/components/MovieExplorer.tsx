@@ -41,7 +41,7 @@ const MovieExplorer: React.FC = () => {
   
   // Movie states
   const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
-  const [nextMovie, setNextMovie] = useState<Movie | null>(null);
+  const [movieQueue, setMovieQueue] = useState<Movie[]>([]);
   const [loadingMovie, setLoadingMovie] = useState(false);
   
   // UI state
@@ -49,6 +49,9 @@ const MovieExplorer: React.FC = () => {
   const [expanded, setExpanded] = useState(false);
   const [fullPosterOpen, setFullPosterOpen] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
+  
+  // Queue configuration
+  const QUEUE_SIZE = 3; // Number of movies to preload
   
   // Constants
   const overviewCharLimit = 150;
@@ -63,21 +66,42 @@ const MovieExplorer: React.FC = () => {
     }
   }, [api]);
 
-  // Preload the next movie
-  const preloadNextMovie = useCallback(async () => {
-    // Only start a new fetch if we don't already have a next movie ready
-    if (!nextMovie) {
+  // Replenish the movie queue to maintain QUEUE_SIZE movies
+  const replenishQueue = useCallback(async () => {
+    // Only fetch more if we're below the target queue size
+    if (movieQueue.length < QUEUE_SIZE) {
+      // Track if component is still mounted
+      let isMounted = true;
+      
+      // Calculate how many more movies we need
+      const moviesNeeded = QUEUE_SIZE - movieQueue.length;
+      
+      // Create an array of promises to fetch the needed movies
+      const fetchPromises = Array(moviesNeeded).fill(null).map(() => fetchMovie());
+      
       try {
-        const movie = await fetchMovie();
-        // Only update state if we're still on the same current movie
-        // This prevents state updates on unmounted components
-        setNextMovie(movie);
+        // Fetch all movies in parallel
+        const movies = await Promise.all(fetchPromises);
+        
+        // Only update state if component is still mounted and we got valid movies
+        if (isMounted) {
+          const validMovies = movies.filter(movie => movie !== null) as Movie[];
+          
+          if (validMovies.length > 0) {
+            setMovieQueue(prevQueue => [...prevQueue, ...validMovies]);
+          }
+        }
       } catch (err) {
-        console.error('Failed to preload next movie:', err);
-        // We don't set an error state here since this is a background operation
+        console.error('Failed to replenish movie queue:', err);
+        // We don't set error state since this is a background operation
       }
+      
+      // Cleanup function to set isMounted to false when component unmounts
+      return () => {
+        isMounted = false;
+      };
     }
-  }, [fetchMovie, nextMovie]);
+  }, [fetchMovie, movieQueue.length]);
 
   // Load initial data
   useEffect(() => {
@@ -86,18 +110,26 @@ const MovieExplorer: React.FC = () => {
       setError(null);
       
       try {
-        // Load the current movie
-        const movie = await fetchMovie();
-        if (movie) {
-          setCurrentMovie(movie);
-          // Preload the next movie right after
-          const nextMovieData = await fetchMovie();
-          setNextMovie(nextMovieData);
+        // Fetch QUEUE_SIZE + 1 movies initially (1 for current, rest for queue)
+        const fetchPromises = Array(QUEUE_SIZE + 1).fill(null).map(() => fetchMovie());
+        const movies = await Promise.all(fetchPromises);
+        
+        // Filter out any null results
+        const validMovies = movies.filter(movie => movie !== null) as Movie[];
+        
+        if (validMovies.length > 0) {
+          // Set the first movie as current
+          setCurrentMovie(validMovies[0]);
+          
+          // Add the rest to the queue
+          if (validMovies.length > 1) {
+            setMovieQueue(validMovies.slice(1));
+          }
         } else {
-          setError('Failed to fetch movie');
+          setError('Failed to fetch movies');
         }
       } catch (err) {
-        setError('Failed to fetch movie');
+        setError('Failed to fetch movies');
         console.error(err);
       } finally {
         setLoadingMovie(false);
@@ -107,30 +139,42 @@ const MovieExplorer: React.FC = () => {
     initialize();
   }, [fetchMovie]);
 
+  // Effect to monitor queue size and replenish as needed
+  useEffect(() => {
+    if (!loadingMovie && movieQueue.length < QUEUE_SIZE) {
+      replenishQueue();
+    }
+  }, [loadingMovie, movieQueue.length, replenishQueue]);
+
   // Move to the next movie
   const moveToNextMovie = useCallback(() => {
-    // If we have a preloaded movie, use it
-    if (nextMovie) {
+    // If we have movies in the queue, use the first one
+    if (movieQueue.length > 0) {
+      // Get the first movie from the queue
+      const nextMovie = movieQueue[0];
+      
+      // Update current movie
       setCurrentMovie(nextMovie);
-      setNextMovie(null);
-      // Start preloading the next movie
-      preloadNextMovie();
+      
+      // Remove the used movie from the queue
+      setMovieQueue(prevQueue => prevQueue.slice(1));
+      
+      // Reset UI state for the new movie
+      setExpanded(false);
     } else {
-      // If no preloaded movie (rare case), fetch one
+      // If queue is empty (rare case), fetch a new one
       setLoadingMovie(true);
       fetchMovie().then(movie => {
         if (movie) {
           setCurrentMovie(movie);
           setLoadingMovie(false);
-          // And then preload the next one
-          preloadNextMovie();
         } else {
           setError('Failed to fetch movie');
           setLoadingMovie(false);
         }
       });
     }
-  }, [nextMovie, preloadNextMovie, fetchMovie]);
+  }, [movieQueue, fetchMovie]);
 
   // Rate current movie
   const handleRating = async (rating: 'yes' | 'no' | 'maybe') => {
@@ -209,7 +253,7 @@ const MovieExplorer: React.FC = () => {
     </Button>
   );
 
-  const buttonHeight = isVerySmallScreen ? 48 : 56;
+  const buttonHeight = 50; //isVerySmallScreen ? 48 : 56;
 
   // Loading state
   if (loadingMovie) {
@@ -371,10 +415,17 @@ const MovieExplorer: React.FC = () => {
         {/* Skip Button */}
         <SkipButton />
         
-        {/* Preload next movie image */}
-        {nextMovie && nextMovie.poster_path && (
-          <link rel="preload" href={getPosterUrl(nextMovie.poster_path)} as="image" />
-        )}
+        {/* Preload all movie images in the queue */}
+        {movieQueue.map((movie) => (
+          movie.poster_path && (
+            <link key={`preload-${movie.id}`} rel="preload" href={getPosterUrl(movie.poster_path)} as="image" />
+          )
+        ))}
+        
+        {/* Debug info - Show queue size (remove in production) */}
+        {/* <Box sx={{ position: 'absolute', top: 8, right: 60, color: 'white', zIndex: 2, backgroundColor: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px' }}>
+          Queue: {movieQueue.length}
+        </Box> */}
         
         {/* Dialog for full poster view */}
         <Dialog

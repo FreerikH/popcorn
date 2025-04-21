@@ -5,7 +5,7 @@ import { Container } from '@mui/material';
 
 const MovieRatingPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const [isMobile, setIsMobile] = useState(false);
+  const [/*isMobile*/, setIsMobile] = useState(false);
   const [, setUserAgent] = useState('');
 
   useEffect(() => {
@@ -14,7 +14,9 @@ const MovieRatingPage: React.FC = () => {
     setIsMobile(/Mobi|Android|iPhone|iPad|iPod/i.test(ua));
   }, []);
 
-  const containerHeight = isMobile ? 'calc(100% - 52px)' : '100%';
+  // full heigh - 50px
+  //const containerHeight = isMobile ? 'calc(100% - 50px)' : '100%';
+  const containerHeight = 'calc(var(--vh, 1vh) * 100 - 50px)';
 
   return (
     <Container maxWidth="sm" sx={{ px: 0, height: containerHeight, overflowY: 'hidden' }}>

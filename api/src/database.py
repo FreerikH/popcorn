@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError
 import os
 from dotenv import load_dotenv
 
@@ -21,11 +22,7 @@ class DB:
                         return [{k:v for k,v in zip(columns, r)} for r in records]
                     except:
                         return None
-                        pass
-                        records = result.fetchall()
-                        return [{k:v for k,v in zip(columns, r)} for r in records]
-                    #return [dict(row) for row in result]
-                #connection.commit()
-                #return None
+        except OperationalError as e:
+            pass
         except Exception as e:
             raise

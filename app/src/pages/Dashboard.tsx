@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Paper,
-  Box,
   Container,
   Grid,
   Button
@@ -29,15 +28,8 @@ const Dashboard: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Welcome, {currentUser?.name || currentUser?.email}!
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Here's your personalized dashboard. Explore movies, rate them, and connect with friends!
-        </Typography>
       </Paper>
-     
-      <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-        What would you like to do today?
-      </Typography>
-      
+           
       <Grid container spacing={3}>
         <Grid size={{xs:12, md:4}}>
           <Button 
@@ -96,28 +88,6 @@ const Dashboard: React.FC = () => {
           </Button>
         </Grid>
       </Grid>
-      
-      <Box sx={{ mt: 4 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Activity Overview
-          </Typography>
-          <Typography variant="body1">
-            Welcome to your movie social network! Use the buttons above to:
-          </Typography>
-          <Box component="ul" sx={{ mt: 2 }}>
-            <Typography component="li">
-              Discover and rate new movies in the Movies section
-            </Typography>
-            <Typography component="li">
-              Connect with friends and share your movie tastes in the Friends section
-            </Typography>
-            <Typography component="li">
-              Compare your movie ratings with friends in the Comparisons section
-            </Typography>
-          </Box>
-        </Paper>
-      </Box>
     </Container>
   );
 };

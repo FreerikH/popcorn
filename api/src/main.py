@@ -39,7 +39,14 @@ async def serve_react(full_path: str):
     # Skip API routes - they're handled by the router
     if full_path.startswith('api/'):
         raise HTTPException(status_code=404, detail="Not found")
-    return FileResponse(react_app_index)
+    if full_path == '':
+        full_path = 'index.html'
+    if not '.' in full_path or full_path == 'favicon.ico':
+        full_path = 'index.html'
+    try:
+        return FileResponse(os.path.join(react_app_dir, full_path))
+    except:
+        return ''
 
 if __name__ == "__main__":
     import uvicorn

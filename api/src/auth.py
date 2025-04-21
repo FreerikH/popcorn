@@ -51,7 +51,7 @@ def get_password_hash(password):
 
 def get_user(email: str):
     # Query the database for the user with the given email
-    users = db.execute("SELECT id, name, email, password as hashed_password, avatar FROM users WHERE email = :email", {"email": email})
+    users = db.execute("SELECT id, name, email, password as hashed_password, avatar FROM users WHERE LOWER(email) = LOWER(:email)", {"email": email})
     if users and len(users) > 0:
         user_dict = users[0]
         # Add disabled field if it doesn't exist in your table

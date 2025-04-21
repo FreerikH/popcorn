@@ -10,9 +10,11 @@ const HomePage: React.FC = () => {
   const [showLoginForm, setShowLoginForm] = useState<boolean>(true);
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-  
+
+  const containerHeight = 'calc(var(--vh, 1vh) * 100 - 50px - 100px)';
+
   return (
-    <Container sx={{border:'1px solid green', height: '100%'}}>
+    <Container sx={{height: containerHeight }}>
       {isAuthenticated ? (
         <Dashboard />
       ) : (
