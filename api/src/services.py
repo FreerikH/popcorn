@@ -8,10 +8,10 @@ from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
 
 try:
-    from .auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_user
+    from .auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_user, create_user, update_user
     from .database import DB
 except:
-    from auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_user
+    from auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_user, create_user, update_user
     from database import DB
 
 # Initialize database connection
@@ -31,11 +31,9 @@ def login_service(email: str, password: str):
 
 # User management services
 def create_user_service(name: str, email: str, password: str, avatar: Optional[str] = None):
-    from auth import create_user
     return create_user(name, email, password, avatar)
 
 def update_user_service(user_id: int, update_data: Dict[str, Any]):
-    from auth import update_user
     return update_user(user_id, update_data)
 
 def get_user_by_email_service(email: str):
