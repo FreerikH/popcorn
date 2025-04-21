@@ -1,77 +1,54 @@
 import { createTheme } from '@mui/material/styles';
-import { PaletteColorOptions } from '@mui/material/styles';
 
+// First, we need to extend the Palette and PaletteOptions interfaces
 declare module '@mui/material/styles' {
-  interface CustomPalette {
-    primary: PaletteColorOptions;
-    secondary: PaletteColorOptions;
-    error: PaletteColorOptions;
-    warning: PaletteColorOptions;
-    info: PaletteColorOptions;
-    success: PaletteColorOptions;
+  interface Palette {
+    rating: {
+      skip: string;
+      maybe: string;
+      watch: string;
+    };
   }
- 
-  // Allow configuration using `createTheme`
-  interface CustomThemeOptions {
-    palette?: CustomPalette;
+  
+  interface PaletteOptions {
+    rating?: {
+      skip?: string;
+      maybe?: string;
+      watch?: string;
+    };
   }
 }
 
-// Create your custom theme
+// Now create the theme with our custom properties
 const theme = createTheme({
   palette: {
     primary: {
-      // Main primary color - popcorn gold from logo
-      main: '#FFCC33', // Golden yellow from the logo
-      light: '#FFE07A',
-      dark: '#E6A800',
-      contrastText: '#000000', // Black text for contrast on light background
+      main: '#f7bd31', // Yellow - keeping your original primary
+      light: '#f9cc5c', // Lighter yellow for hover effects
+      dark: '#d9a118', // Darker yellow for emphasis
     },
     secondary: {
-      // Secondary color - black from logo background
-      main: '#1A1A1A', // Dark background color
-      light: '#2C2C2C',
-      dark: '#000000',
-      contrastText: '#FFFFFF',
+      main: '#2c2c2c', // Dark gray instead of red
+      light: '#3d3d3d', // Lighter gray for hover effects
+      dark: '#1a1a1a', // Darker gray
     },
-    // You can customize other palette colors too
-    error: {
-      main: '#FF4D4F',
-    },
-    warning: {
-      main: '#FAAD14',
-    },
-    info: {
-      main: '#1890FF',
-    },
-    success: {
-      main: '#52C41A',
-    },
-    // You can also customize text colors
-    text: {
-      primary: '#000000',
-      secondary: '#4A4A4A',
-      disabled: '#9E9E9E',
-    },
-    // Background colors
     background: {
-      default: '#FFFFFF', // Clean white background to make the black/gold pop
-      paper: '#FFFFFF',
+      default: '#0a0b08', // Keeping your original dark background
+      paper: '#141411', // Slightly lighter than default for contrasting elements
     },
-  },
-  // You can customize typography, shape, spacing, and other theme aspects too
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h6: {
-      fontWeight: 600,
+    action: {
+      disabledBackground: '#2c2c2c',
+      disabled: '#757575',
     },
-    button: {
-      fontWeight: 600,
-      textTransform: 'none',
+    rating: {
+      skip: '#f44336', // Red for skip
+      maybe: '#aaaaaa', // Gray for maybe
+      watch: '#f7bd31', // Yellow (primary) for watch
     },
-  },
-  shape: {
-    borderRadius: 8,
+    text: {
+      primary: '#ffffff',
+      secondary: '#cccccc',
+    }
   },
 });
 
