@@ -4,29 +4,22 @@ import {
   Typography,
   Paper,
   Box,
-  Grid,
   List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
-  Divider,
+  Button,
   CircularProgress,
   Alert,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Rating,
-  Button,
-  Chip,
   SelectChangeEvent
 } from '@mui/material';
 import {
-  Movie as MovieIcon,
   Refresh as RefreshIcon,
-  Compare as CompareIcon
+  Compare as CompareIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
+import MoviePreviewItem from './MoviePreviewItem'; // Import the new component
 
 interface User {
   id: number;
@@ -42,9 +35,8 @@ interface Friend {
 
 interface CombinedPreference {
   movie_id: number;
-  user1_rating: number | null;
-  user2_rating: number | null;
-  ratingDate: string;
+  rating_combined: number;
+  match: 'perfect' | 'partial' | 'mismatch';
 }
 
 interface Movie {
@@ -57,17 +49,24 @@ interface Movie {
   genres?: { id: number; name: string }[];
 }
 
+interface MovieWithPreference {
+  preference: CombinedPreference;
+  movieDetails: Movie | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
 const FriendMovieComparison: React.FC = () => {
   const api = useApi();
   
   // State
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selectedFriendId, setSelectedFriendId] = useState<string>('');
-  const [combinedPreferences, setCombinedPreferences] = useState<CombinedPreference[]>([]);
-  const [moviesDetails, setMoviesDetails] = useState<Map<number, Movie>>(new Map());
+  const [moviesWithPreferences, setMoviesWithPreferences] = useState<MovieWithPreference[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [loadingComparison, setLoadingComparison] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [displayCount, setDisplayCount] = useState(10);
 
   // Load friends on component mount
   useEffect(() => {
@@ -94,69 +93,120 @@ const FriendMovieComparison: React.FC = () => {
   const handleFriendChange = (event: SelectChangeEvent) => {
     const value = event.target.value;
     setSelectedFriendId(value);
+    setDisplayCount(10); // Reset display count on new friend selection
+    
     if (value !== '') {
       fetchCombinedPreferences(Number(value));
     } else {
-      setCombinedPreferences([]);
-      setMoviesDetails(new Map());
+      setMoviesWithPreferences([]);
     }
   };
 
-  // Fetch combined preferences
+  // Fetch movie details for a specific preference
+  const fetchMovieDetails = async (preference: CombinedPreference, index: number) => {
+    try {
+      const movie = await api.get<Movie>(`/movies?movie_id=${preference.movie_id}`);
+      
+      setMoviesWithPreferences(current => {
+        const updated = [...current];
+        updated[index] = {
+          ...updated[index],
+          movieDetails: movie,
+          isLoading: false
+        };
+        return updated;
+      });
+    } catch (err) {
+      console.error(`Failed to fetch details for movie ${preference.movie_id}`, err);
+      
+      setMoviesWithPreferences(current => {
+        const updated = [...current];
+        updated[index] = {
+          ...updated[index],
+          isLoading: false,
+          error: 'Failed to load movie details'
+        };
+        return updated;
+      });
+    }
+  };
+
+  // Load initial batch of movie details
+  const loadInitialMovieDetails = (moviesArray: MovieWithPreference[]) => {
+    // Only load the first displayCount movies
+    for (let i = 0; i < Math.min(displayCount, moviesArray.length); i++) {
+      loadMovieDetails(i, moviesArray);
+    }
+  };
+  
+  // Load a specific movie's details
+  const loadMovieDetails = (index: number, moviesArray = moviesWithPreferences) => {
+    const item = moviesArray[index];
+    if (!item || item.isLoading || item.movieDetails) return; // Skip if already loading or loaded
+    
+    // Mark as loading
+    setMoviesWithPreferences(current => {
+      const updated = [...current];
+      updated[index] = {
+        ...updated[index],
+        isLoading: true
+      };
+      return updated;
+    });
+    
+    // Fetch the details
+    fetchMovieDetails(item.preference, index);
+  };
+
+  // Fetch combined preferences with the new API format
   const fetchCombinedPreferences = async (friendId: number) => {
     setLoadingComparison(true);
     setError(null);
     
     try {
       const data = await api.get<CombinedPreference[]>(`/movies/preferences/combined/${friendId}`);
-      setCombinedPreferences(data);
       
-      // Fetch movie details for each movie in the combined preferences
-      const moviesMap = new Map<number, Movie>();
+      // Initialize movie preferences with not-yet-loaded state
+      const initialMoviesWithPrefs = data.map(preference => ({
+        preference,
+        movieDetails: null,
+        isLoading: false, // Set to false initially - we'll set it to true when we start loading
+        error: null
+      }));
       
-      for (const pref of data) {
-        try {
-          // Only fetch if we don't already have this movie's details
-          if (!moviesMap.has(pref.movie_id)) {
-            const movie = await api.get<Movie>(`/movies?movie_id=${pref.movie_id}`);
-            moviesMap.set(pref.movie_id, movie);
-          }
-        } catch (err) {
-          console.error(`Failed to fetch details for movie ${pref.movie_id}`, err);
-        }
-      }
+      setMoviesWithPreferences(initialMoviesWithPrefs);
       
-      setMoviesDetails(moviesMap);
+      // Only fetch details for the first batch of movies
+      loadInitialMovieDetails(initialMoviesWithPrefs);
     } catch (err) {
       setError('Failed to fetch combined preferences');
       console.error(err);
+      setMoviesWithPreferences([]);
     } finally {
       setLoadingComparison(false);
     }
   };
 
-  // Calculate compatibility score (percentage of movies where ratings are within 1 point)
-  const calculateCompatibility = () => {
-    if (combinedPreferences.length === 0) return 0;
+  // Handle load more button click
+  const handleLoadMore = () => {
+    const newDisplayCount = displayCount + 10;
+    setDisplayCount(newDisplayCount);
     
-    const sharedMovies = combinedPreferences.filter(
-      pref => pref.user1_rating !== null && pref.user2_rating !== null
-    );
-    
-    if (sharedMovies.length === 0) return 0;
-    
-    const compatibleMovies = sharedMovies.filter(
-      pref => Math.abs((pref.user1_rating || 0) - (pref.user2_rating || 0)) <= 1
-    );
-    
-    return Math.round((compatibleMovies.length / sharedMovies.length) * 100);
+    // Load details for the newly displayed movies
+    for (let i = displayCount; i < Math.min(newDisplayCount, moviesWithPreferences.length); i++) {
+      loadMovieDetails(i);
+    }
   };
+
 
   // Get friend name by ID
   const getSelectedFriendName = () => {
     const friend = friends.find(f => f.user.id === Number(selectedFriendId));
     return friend ? friend.user.name : 'Selected Friend';
   };
+
+  // Check if there are more items to load
+  const hasMoreItems = moviesWithPreferences.length > displayCount;
 
   return (
     <Paper sx={{ p: 3 }}>
@@ -205,7 +255,7 @@ const FriendMovieComparison: React.FC = () => {
         )}
       </Box>
 
-                {selectedFriendId && (
+      {selectedFriendId && (
         <>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
@@ -221,105 +271,45 @@ const FriendMovieComparison: React.FC = () => {
             </Button>
           </Box>
 
-          {loadingComparison ? (
+          {loadingComparison && moviesWithPreferences.length === 0 ? (
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress />
             </Box>
           ) : (
             <>
-              {combinedPreferences.length > 0 ? (
+              {moviesWithPreferences.length > 0 ? (
                 <>
-                  <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
-                    <Typography variant="h4" gutterBottom color="primary">
-                      {calculateCompatibility()}% Compatible
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Based on {combinedPreferences.filter(p => p.user1_rating !== null && p.user2_rating !== null).length} movies you've both rated
-                    </Typography>
-                  </Box>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom align="center">
+                    Movies You Both Rated
+                  </Typography>
 
-                  <Grid container sx={{ mb: 2 }}>
-                    <Grid size={{xs:6}} sx={{ textAlign: 'center' }}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        Your Rating
-                      </Typography>
-                    </Grid>
-                    <Grid size={{xs:6}} sx={{ textAlign: 'center' }}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        {getSelectedFriendName()}'s Rating
-                      </Typography>
-                    </Grid>
-                  </Grid>
-
-                  <List>
-                    {combinedPreferences.map((pref) => {
-                      const movie = moviesDetails.get(pref.movie_id);
-                      const ratingDifference = 
-                        pref.user1_rating !== null && pref.user2_rating !== null 
-                          ? Math.abs(pref.user1_rating - pref.user2_rating) 
-                          : null;
+                  <List sx={{border:'1px solid red', height: '400px', overflow: 'auto'}}>
+                    {moviesWithPreferences.slice(0, displayCount).map((item, index) => {
+                      // If this item hasn't started loading yet, trigger the load
+                      if (!item.isLoading && !item.movieDetails && !item.error) {
+                        // Use setTimeout to avoid too many simultaneous API calls
+                        setTimeout(() => loadMovieDetails(index), index * 100);
+                      }
                       
                       return (
-                        <React.Fragment key={pref.movie_id}>
-                          <ListItem alignItems="flex-start">
-                            <ListItemAvatar>
-                              {movie && movie.poster_path ? (
-                                <Avatar 
-                                  alt={movie.title} 
-                                  src={movie.poster_path} 
-                                  variant="rounded"
-                                  sx={{ width: 56, height: 56 }}
-                                />
-                              ) : (
-                                <Avatar variant="rounded" sx={{ width: 56, height: 56 }}>
-                                  <MovieIcon />
-                                </Avatar>
-                              )}
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="subtitle1">
-                                    {movie ? movie.title : `Movie ID: ${pref.movie_id}`}
-                                  </Typography>
-                                  {ratingDifference !== null && (
-                                    <Chip 
-                                      label={ratingDifference <= 1 ? 'Match!' : `${ratingDifference} ★ apart`}
-                                      color={ratingDifference <= 1 ? 'success' : ratingDifference <= 2 ? 'warning' : 'error'}
-                                      size="small"
-                                    />
-                                  )}
-                                </Box>
-                              }
-                              secondary={
-                                <Grid container sx={{ mt: 1 }}>
-                                  <Grid size={{xs:6}} sx={{ textAlign: 'center' }}>
-                                    {pref.user1_rating !== null ? (
-                                      <Rating value={pref.user1_rating} readOnly size="small" />
-                                    ) : (
-                                      <Typography variant="body2" color="text.secondary">
-                                        Not rated
-                                      </Typography>
-                                    )}
-                                  </Grid>
-                                  <Grid size={{xs:6}} sx={{ textAlign: 'center' }}>
-                                    {pref.user2_rating !== null ? (
-                                      <Rating value={pref.user2_rating} readOnly size="small" />
-                                    ) : (
-                                      <Typography variant="body2" color="text.secondary">
-                                        Not rated
-                                      </Typography>
-                                    )}
-                                  </Grid>
-                                </Grid>
-                              }
-                            />
-                          </ListItem>
-                          <Divider component="li" />
-                        </React.Fragment>
+                        <MoviePreviewItem
+                          item={item}
+                        />
                       );
                     })}
                   </List>
+                  
+                  {hasMoreItems && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 1 }}>
+                      <Button
+                        variant="outlined"
+                        endIcon={<ExpandMoreIcon />}
+                        onClick={handleLoadMore}
+                      >
+                        Load More Movies
+                      </Button>
+                    </Box>
+                  )}
                 </>
               ) : (
                 <Alert severity="info">

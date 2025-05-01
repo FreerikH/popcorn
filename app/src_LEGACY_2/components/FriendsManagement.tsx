@@ -37,16 +37,9 @@ interface User {
   email: string;
 }
 
-interface IncomingFriendRequest {
+interface FriendRequest {
   id: number;
   sender: User;
-  status: 'pending' | 'accepted' | 'rejected';
-  createdAt: string;
-}
-
-interface OutgoingFriendRequest {
-  id: number;
-  receiver: User;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
 }
@@ -100,8 +93,8 @@ const FriendsManagement: React.FC = () => {
   const [loadingFriends, setLoadingFriends] = useState(false);
   
   // Friend requests state
-  const [incomingRequests, setIncomingRequests] = useState<IncomingFriendRequest[]>([]);
-  const [outgoingRequests, setOutgoingRequests] = useState<OutgoingFriendRequest[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   
   // Error state
@@ -131,7 +124,7 @@ const FriendsManagement: React.FC = () => {
       
       // Filter out users that already have pending requests or are already friends
       const existingUserIds = new Set([
-        ...outgoingRequests.map(req => req.receiver.id),
+        ...outgoingRequests.map(req => req.sender.id),
         ...friends.map(friend => friend.user.id)
       ]);
       
@@ -234,8 +227,8 @@ const FriendsManagement: React.FC = () => {
     setLoadingRequests(true);
     setError(null);
     try {
-      const incoming = await api.get<IncomingFriendRequest[]>('/friends/requests/incoming');
-      const outgoing = await api.get<OutgoingFriendRequest[]>('/friends/requests/outgoing');
+      const incoming = await api.get<FriendRequest[]>('/friends/requests/incoming');
+      const outgoing = await api.get<FriendRequest[]>('/friends/requests/outgoing');
       setIncomingRequests(incoming);
       setOutgoingRequests(outgoing);
     } catch (err) {
@@ -457,13 +450,13 @@ const FriendsManagement: React.FC = () => {
                   <React.Fragment key={request.id}>
                     <ListItem alignItems="flex-start">
                       <ListItemAvatar>
-                        <Avatar>{request.receiver.name.charAt(0)}</Avatar>
+                        <Avatar>{request.sender.name.charAt(0)}</Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                        primary={request.receiver.name}
+                        primary={request.sender.name}
                         secondary={
                           <>
-                            {request.receiver.email}
+                            {request.sender.email}
                             <Typography
                               variant="body2"
                               color="text.secondary"

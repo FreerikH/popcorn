@@ -4,11 +4,20 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.exceptions import HTTPException
 import os
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from datetime import datetime
+import logging
 
 try:
     from .routes import router
+    from .service import Service
 except:
     from routes import router
+    from service import Service
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="FastAPI Auth Example")
 
@@ -20,6 +29,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Create scheduler
+scheduler = AsyncIOScheduler()
+
+# Define your background task
+async def scheduled_task():
+    logger.info(f"Scheduled task running at: {datetime.now()}")
+    service = Service(None)
+    service.populate_movies_cache()
+
+# Add startup and shutdown events
+@app.on_event("startup")
+async def startup_event():
+    # Schedule your task (this example runs every minute)
+    scheduler.add_job(scheduled_task, 'interval', minutes=5)
+    # You can also use cron-style scheduling:
+    # scheduler.add_job(scheduled_task, 'cron', hour=0)  # Run at midnight every day
+    scheduler.start()
+    logger.info("Background scheduler started")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    scheduler.shutdown()
+    logger.info("Background scheduler shut down")
 
 # Include the router with /api prefix
 app.include_router(router)

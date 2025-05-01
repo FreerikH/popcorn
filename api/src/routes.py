@@ -1,38 +1,14 @@
-#routes.py
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 try:
-    from .auth import get_current_active_user, User, Token
-    from .services import (
-        login_service, 
-        create_user_service, 
-        search_users_service ,
-        get_friends_service,
-        create_friend_request_service,
-        get_incoming_requests_service,
-        update_friend_request_service,
-        get_outgoing_requests_service,
-        cancel_friend_request_service,
-        remove_friend_service,
-        get_movie_service, update_preference_service, get_user_preferences_service, get_combined_preferences_service  
-    )
+    from .auth import get_current_active_user, User, Token, UserCreate, auth_service
+    from .service import get_service, Service
 except:
-    from auth import get_current_active_user, User, Token
-    from services import (
-        login_service, 
-        create_user_service, 
-        search_users_service ,
-        get_friends_service,
-        create_friend_request_service,
-        get_incoming_requests_service,
-        update_friend_request_service,
-        get_outgoing_requests_service,
-        cancel_friend_request_service,
-        remove_friend_service,
-        get_movie_service, update_preference_service, get_user_preferences_service, get_combined_preferences_service  
-    )
+    from auth import get_current_active_user, User, Token, UserCreate, auth_service
+    from service import get_service, Service
 
 # Create an API router with a prefix
 router = APIRouter(prefix="/api")
@@ -50,12 +26,6 @@ class Item(ItemBase):
     
     class Config:
         orm_mode = True
-
-class UserCreate(BaseModel):
-    name: str
-    email: str
-    password: str
-    avatar: Optional[str] = None
 
 # Friend-related models
 class FriendRequest(BaseModel):
@@ -82,10 +52,33 @@ class Friend(BaseModel):
     class Config:
         orm_mode = True
 
+class MoviePreference(BaseModel):
+    movie_id: int
+    rating: int
+
+class MoviePreferenceResponse(BaseModel):
+    movie_id: int
+    rating: int
+    created_at: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
+
+# Combined preferences model
+class CombinedPreferenceResponse(BaseModel):
+    movie_id: int
+    user1_rating: Optional[int] = None
+    user2_rating: Optional[int] = None
+    ratingDate: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
+
+# Auth routes
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
 async def register_user(user: UserCreate):
-    # Call the existing create_user_service
-    new_user = create_user_service(user.name, user.email, user.password, user.avatar)
+    """Register a new user"""
+    new_user = auth_service.create_user(user.name, user.email, user.password, user.avatar)
     
     if not new_user:
         raise HTTPException(
@@ -99,27 +92,21 @@ async def register_user(user: UserCreate):
     
     return new_user
 
-# Auth routes
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    token_data = login_service(form_data.username, form_data.password)
-    if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    """Generate an access token for authentication"""
+    token_data = auth_service.login(form_data.username, form_data.password)
     return token_data
 
 @router.get("/users/me", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    return current_user
+async def read_users_me(user: Service = Depends(get_current_active_user)):
+    return user
 
-
+# User search route
 @router.get("/users", response_model=List[User])
 async def search_users(
     q: Optional[str] = Query(None, description="Search query for name or email"),
-    current_user: User = Depends(get_current_active_user)
+    service: Service = Depends(get_service)
 ):
     """
     Search for users by name or email using a simple query parameter
@@ -130,19 +117,18 @@ async def search_users(
         return []
     
     # Search for users with the provided query
-    users = search_users_service(q)
+    users = service.search_users(q)
     
-    # returns list of dicts [{id:1, name:A, email:a@b.de}, ...]
     return users
 
 # Friend request endpoints
 @router.post("/friends/requests", status_code=status.HTTP_201_CREATED)
 async def create_friend_request(
     request: FriendRequestCreate,
-    current_user: User = Depends(get_current_active_user)
+    service: Service = Depends(get_service)
 ):
     """Send a friend request to another user"""
-    result = create_friend_request_service(current_user.id, request.receiver_id)
+    result = service.create_friend_request(request.receiver_id)
     
     if not result:
         raise HTTPException(
@@ -153,26 +139,20 @@ async def create_friend_request(
     return {"message": "Friend request sent successfully"}
 
 @router.get("/friends/requests/incoming", response_model=List[Dict[str, Any]])
-async def get_incoming_friend_requests(
-    current_user: User = Depends(get_current_active_user)
-):
+async def get_incoming_friend_requests(service: Service = Depends(get_service)):
     """Get list of incoming friend requests for the current user"""
-    requests = get_incoming_requests_service(current_user.id)
-    return requests
+    return service.get_incoming_requests()
 
 @router.get("/friends/requests/outgoing", response_model=List[Dict[str, Any]])
-async def get_outgoing_friend_requests(
-    current_user: User = Depends(get_current_active_user)
-):
+async def get_outgoing_friend_requests(service: Service = Depends(get_service)):
     """Get list of outgoing friend requests from the current user"""
-    requests = get_outgoing_requests_service(current_user.id)
-    return requests
+    return service.get_outgoing_requests()
 
 @router.post("/friends/requests/{request_id}", status_code=status.HTTP_200_OK)
 async def update_friend_request(
     request_id: int,
     update: FriendRequestUpdate,
-    current_user: User = Depends(get_current_active_user)
+    service: Service = Depends(get_service)
 ):
     """Accept or reject a friend request"""
     if update.status not in ["accepted", "rejected"]:
@@ -181,7 +161,7 @@ async def update_friend_request(
             detail="Status must be 'accepted' or 'rejected'"
         )
     
-    result = update_friend_request_service(request_id, current_user.id, update.status)
+    result = service.update_friend_request(request_id, update.status)
     
     if not result:
         raise HTTPException(
@@ -194,10 +174,10 @@ async def update_friend_request(
 @router.delete("/friends/requests/{request_id}", status_code=status.HTTP_200_OK)
 async def cancel_friend_request(
     request_id: int,
-    current_user: User = Depends(get_current_active_user)
+    service: Service = Depends(get_service)
 ):
     """Cancel an outgoing friend request"""
-    result = cancel_friend_request_service(request_id, current_user.id)
+    result = service.cancel_friend_request(request_id)
     
     if not result:
         raise HTTPException(
@@ -209,20 +189,17 @@ async def cancel_friend_request(
 
 # Friends management endpoints
 @router.get("/friends", response_model=List[Dict[str, Any]])
-async def get_friends(
-    current_user: User = Depends(get_current_active_user)
-):
+async def get_friends(service: Service = Depends(get_service)):
     """Get list of friends for the current user"""
-    friends_list = get_friends_service(current_user.id)
-    return friends_list
+    return service.get_friends()
 
 @router.delete("/friends/{friend_id}", status_code=status.HTTP_200_OK)
 async def remove_friend(
     friend_id: int,
-    current_user: User = Depends(get_current_active_user)
+    service: Service = Depends(get_service)
 ):
     """Remove a friend connection"""
-    result = remove_friend_service(current_user.id, friend_id)
+    result = service.remove_friend(friend_id)
     
     if not result:
         raise HTTPException(
@@ -232,53 +209,43 @@ async def remove_friend(
     
     return {"message": "Friend removed successfully"}
 
-
-# Add these imports to your routes.py file
-from typing import Optional, List
-from fastapi import Path, Body
-from pydantic import BaseModel, Field
-
-
-# Add these models to your routes.py file
-
-class MoviePreference(BaseModel):
-    movie_id: int
-    rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5")
-
-class MoviePreferenceResponse(BaseModel):
-    movie_id: int
-    rating: int
-    created_at: Optional[str] = None
-    
-    class Config:
-        orm_mode = True
-
-# Add these routes to your router in routes.py
-
-@router.get("/movies", status_code=status.HTTP_200_OK)
+# Movie endpoints
+@router.get('/movies')
 async def get_movie(
-    movie_id: Optional[int] = Query(None, description="Movie ID (random if not provided)"),
-    current_user: User = Depends(get_current_active_user)
+    results: int = 1,
+    ignore: str = '',
+    movie_id: int = None,
+    movie_ids: int = None,
+    service: Service = Depends(get_service)
 ):
-    """Get movie details from external API"""
-    result = get_movie_service(movie_id)
-   
-    if result.get("status") == "error":
+    if movie_id:
+        result = service.get_movie(movie_id)
+        return result
+    if movie_ids != '' and not movie_ids is None:
+        movie_ids_list = [int(i) for i in movie_ids.split(',') if i != '']
+        result = service.get_movies(movie_ids_list)
+        return result
+    """Get one or more random movies not previously rated by the user"""
+    ignore_list = [int(i) for i in ignore.split(',') if i != '']
+    result = service.get_random_movies(results, ignore_list)
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=result.get("message", "Failed to fetch movie data")
+            detail="Failed to fetch movie"
         )
-   
-    return result #result.get("data")
+    
+    # Return just the first movie if only one result
+    #if results == 1:
+    #    return result[0]
+    return result
 
-@router.post("/movies/preferences", status_code=status.HTTP_201_CREATED)
-async def create_movie_preference(
+@router.post('/movies/preferences')
+async def set_movie_preference(
     preference: MoviePreference,
-    current_user: User = Depends(get_current_active_user)
+    service: Service = Depends(get_service)
 ):
     """Create or update a movie preference"""
-    result = update_preference_service(current_user.id, preference.movie_id, preference.rating)
-    
+    result = service.set_movie_preference(preference.movie_id, preference.rating)
     if not result:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -287,62 +254,22 @@ async def create_movie_preference(
     
     return {"message": "Preference saved successfully"}
 
-@router.get("/movies/preferences", response_model=List[MoviePreferenceResponse])
-async def get_user_preferences(
-    current_user: User = Depends(get_current_active_user)
-):
+@router.get("/movies/preferences", response_model=List[Dict[str, Any]])
+async def get_user_preferences(service: Service = Depends(get_service)):
     """Get all movie preferences for the current user"""
-    preferences = get_user_preferences_service(current_user.id)
-    
-    # Format the response
-    formatted_preferences = []
-    for pref in preferences:
-        created_at = pref.get("created_at")
-        formatted_preferences.append({
-            "movie_id": pref["movie_id"],
-            "rating": pref["rating"],
-            "created_at": created_at.isoformat() if created_at else None
-        })
-    
-    return formatted_preferences
+    return service.get_user_preferences()
 
-@router.get("/movies/random", status_code=status.HTTP_200_OK)
-async def get_random_movie(
-    current_user: User = Depends(get_current_active_user)
-):
-    """Get a random movie from the external API"""
-    result = get_movie_service()  # No ID means random
-    
-    if result.get("status") == "error":
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=result.get("message", "Failed to fetch random movie")
-        )
-    
-    return result.get("data")
-
-# Then, add a new model for the combined preferences response
-class CombinedPreferenceResponse(BaseModel):
-    movie_id: int
-    user1_rating: Optional[int] = None
-    user2_rating: Optional[int] = None
-    ratingDate: Optional[str] = None
-    
-    class Config:
-        orm_mode = True
-
-# Finally, add the new route
-@router.get("/movies/preferences/combined/{user_id}", response_model=List[CombinedPreferenceResponse])
+@router.get('/movies/preferences/combined/{user_id}')
 async def get_combined_preferences(
-    user_id: int = Path(..., description="ID of the user to compare preferences with"),
-    current_user: User = Depends(get_current_active_user)
+    user_id: int,
+    service: Service = Depends(get_service)
 ):
     """
     Get combined movie preferences for the current user and another user.
-    This shows movies that either user has rated, with both ratings when available.
+    Shows movies that match between the two users with their ratings.
     """
     # Check if the specified user exists and is a friend
-    friends = get_friends_service(current_user.id)
+    friends = service.get_friends()
     is_friend = any(friend.get("user", {}).get("id") == user_id for friend in friends)
     
     if not is_friend:
@@ -351,7 +278,22 @@ async def get_combined_preferences(
             detail="You can only view combined preferences with your friends"
         )
     
-    # Get the combined preferences
-    combined_preferences = get_combined_preferences_service(current_user.id, user_id)
+    result = service.get_combined_preferences(user_id)
     
-    return combined_preferences
+    if not result:
+        return []
+    
+    return result
+
+@router.get("/movies/random", status_code=status.HTTP_200_OK)
+async def get_random_movie(service: Service = Depends(get_service)):
+    """Get a random movie"""
+    result = service.get_random_movies(1)
+    
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch random movie"
+        )
+    
+    return result[0]

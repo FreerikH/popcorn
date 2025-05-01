@@ -12,8 +12,6 @@ import {
 } from '@mui/material';
 import { LockOutlined, EmailOutlined } from '@mui/icons-material';
 
-import theme from '../theme'
-
 interface LoginFormProps {
   onLoginSuccess?: () => void;
 }
@@ -55,8 +53,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
           mt: 4,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          backgroundColor: theme.palette.secondary.main
+          alignItems: 'center'
         }}
       >
         <Typography component="h1" variant="h5" sx={{ mb: 3 }}>

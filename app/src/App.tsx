@@ -1,16 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box } from '@mui/material';
-
+import { ThemeProvider, CssBaseline, Container } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ApiProvider } from './contexts/ApiContext'; // Import the new ApiProvider
+import { ApiProvider } from './contexts/ApiContext';
 import Navbar from './components/Navbar';
+import WelcomePage from './pages/WelcomePage';
 import HomePage from './pages/HomePage';
 import MovieRatingPage from './pages/MovieRatingPage';
 import FriendsPage from './pages/FriendsPage';
 import ComparisonPage from './pages/ComparisonPage';
-
-import theme from './theme'
+import theme from './theme';
 
 // Protected route component
 interface ProtectedRouteProps {
@@ -22,26 +21,55 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ element }) => {
   return isAuthenticated ? <>{element}</> : <Navigate to="/" />;
 };
 
-const containerHeight = 'calc(var(--vh, 1vh) * 100 - 0px)';
+const navbarHeight = 50;
+const containerHeight = `calc(var(--vh, 1vh) * 100 - ${navbarHeight}px)`;
 
+// Main layout component that uses the auth context
+const AppLayout: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    setVh(); // Set on mount
+    window.addEventListener('resize', setVh); // Update on resize
+    return () => window.removeEventListener('resize', setVh);
+  }, []);
+
+  return (
+    <>
+      <Navbar height={navbarHeight} />
+      <Container
+        maxWidth={'sm'}
+        sx={{
+          height: containerHeight,
+          border: '1px solid red',
+          px: { xs: 0 },
+        }}
+      >
+        <Routes>
+          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <WelcomePage />} />
+          <Route path="/dashboard" element={<ProtectedRoute element={<HomePage />} />} />
+          <Route path="/movies" element={<ProtectedRoute element={<MovieRatingPage />} />} />
+          <Route path="/friends" element={<ProtectedRoute element={<FriendsPage />} />} />
+          <Route path="/comparison" element={<ProtectedRoute element={<ComparisonPage />} />} />
+        </Routes>
+      </Container>
+    </>
+  );
+};
+
+// Root App component that sets up providers
 const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <ApiProvider> {/* Wrap your app with ApiProvider */}
+        <ApiProvider>
           <Router>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: containerHeight/*'100vh'*/ }}>
-              <Navbar />
-              <Box component="main" sx={{ flexGrow: 1}}>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/movies" element={<ProtectedRoute element={<MovieRatingPage />} />} />
-                  <Route path="/friends" element={<ProtectedRoute element={<FriendsPage />} />} />
-                  <Route path="/comparison" element={<ProtectedRoute element={<ComparisonPage />} />} />
-                </Routes>
-              </Box>
-            </Box>
+            <AppLayout />
           </Router>
         </ApiProvider>
       </AuthProvider>

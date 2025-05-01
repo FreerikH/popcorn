@@ -1,292 +1,273 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from 'react';
 import { 
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Box,
-  Avatar,
-  Collapse,
-  Container,
-  IconButton,
-  useMediaQuery,
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Button, 
+  IconButton, 
+  Box, 
+  Menu, 
+  MenuItem, 
+  ListItemIcon, 
+  ListItemText,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { 
-  PeopleOutline,
-  ExitToApp as LogoutIcon,
-  Movie as MovieIcon,
-  Compare as CompareIcon,
-  Menu as MenuIcon,
+  Movie as MovieIcon, 
+  CompareArrows as CompareIcon, 
+  AccountCircle, 
+  People as FriendsIcon, 
+  Settings as SettingsIcon, 
+  Logout as LogoutIcon,
+  Menu as MenuIcon
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-const Navbar: React.FC = () => {
-  const { currentUser, logout, isAuthenticated } = useAuth();
+import { useAuth } from '../contexts/AuthContext';
+
+const Navbar = ({ height = 48}) => {
+  const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+
+  const isLoggedIn = isAuthenticated;
+
   const theme = useTheme();
-  const isLargeScreen = useMediaQuery(theme.breakpoints.up('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const location = useLocation();
   
-  // Dropdown state
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  // For user menu
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
   
-  // Ensure navbar dropdown is on top of other content
-  React.useEffect(() => {
-    // Add overflow: hidden to body when dropdown is open to prevent scrolling
-    if (dropdownOpen && !isLargeScreen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [dropdownOpen, isLargeScreen]);
-  
-  const toggleDropdown = () => {
-    if (!isLargeScreen) {
-      setDropdownOpen(!dropdownOpen);
-    }
+  // For mobile menu
+  const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
+  const mobileMenuOpen = Boolean(mobileMenuAnchor);
+
+  const handleProfileMenuOpen = (event:any) => {
+    setAnchorEl(event.currentTarget);
   };
 
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleMobileMenuClose = () => {
+    setMobileMenuAnchor(null);
+  };
+
+  const handleMobileMenuOpen = (event:any) => {
+    setMobileMenuAnchor(event.currentTarget);
+  };
+
+  const isActive = (path:string) => {
+    return location.pathname === path;
+  };
+
+  // Handle logout
   const handleLogout = () => {
-    setDropdownOpen(false);
     logout();
-    navigate('/');
+    handleMenuClose();
+    handleMobileMenuClose();
+    navigate('/'); // Redirect to welcome/home page
   };
 
-  const navigateTo = (path: string) => {
-    setDropdownOpen(false);
-    navigate(path);
-  };
+  // Navigation items
+  const navItems = [
+    { name: 'Movies', path: '/movies', icon: <MovieIcon /> },
+    { name: 'Comparison', path: '/comparison', icon: <CompareIcon /> }
+  ];
+
+  // User menu items
+  const userMenuItems = [
+    { name: 'Friends', path: '/friends', icon: <FriendsIcon /> },
+    { name: 'Settings', path: '/settings', icon: <SettingsIcon /> }
+  ];
 
   return (
-    <>
-      <AppBar 
-        position="sticky" 
-        sx={{
-          backgroundColor: theme.palette.background.paper,
-          color: theme.palette.primary.main,
-          boxShadow: dropdownOpen ? 'none' : undefined,
-          borderBottom: dropdownOpen ? `1px solid ${theme.palette.divider}` : 'none',
-          transition: 'box-shadow 0.3s ease',
-          zIndex: 1200
-        }}
-      >
-        <Container maxWidth="xl">
-          <Toolbar disableGutters>
-            {/* Logo/Brand - make it clickable but don't toggle dropdown */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-              }}
-              onClick={() => navigate('/')}
-            >
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mr: 1,
-                }}
-              >
-                <Box
-                  component="img"
-                  src="/icon_black.png"
-                  alt="Popcorn Logo"
-                  sx={{
-                    width: 50,
-                    height: 50,
-                    objectFit: 'cover',
-                  }}
-                />
-              </Box>
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  component="div"
-                  sx={{
-                    fontWeight: 600,
-                    color: theme.palette.primary.main,
-                    lineHeight: 1.1,
-                    fontSize: '1.1rem'
-                  }}
-                >
-                  Popcorn
-                </Typography>
-                <Typography
-                  variant="caption"
-                  component="div"
-                  sx={{
-                    fontWeight: 400,
-                    color: theme.palette.primary.main,
-                    fontSize: '0.7rem',
-                    letterSpacing: '0.5px',
-                    lineHeight: 1,
-                  }}
-                >
-                  no<span style={{ color: 'secondary' }}>w</span> you pick
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', flexGrow: 1 }}></Box>
-
-            {/* Navigation items for large screens */}
-            {isAuthenticated && isLargeScreen && (
-              <Box sx={{ display: 'flex', gap: 2, mr: 3 }}>
-                <Button
-                  color="primary"
-                  startIcon={<MovieIcon />}
-                  onClick={() => navigateTo('/movies')}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Movies
-                </Button>
-                
-                <Button
-                  color="primary"
-                  startIcon={<PeopleOutline />}
-                  onClick={() => navigateTo('/friends')}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Friends
-                </Button>
-                
-                <Button
-                  color="primary"
-                  startIcon={<CompareIcon />}
-                  onClick={() => navigateTo('/comparison')}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Comparison
-                </Button>
-                
-                <Button
-                  color="primary"
-                  startIcon={<LogoutIcon />}
-                  onClick={handleLogout}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Logout
-                </Button>
-              </Box>
-            )}
-
-            {/* Auth Section */}
-            {isAuthenticated && (
-              <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center' }}>
-                <Avatar
-                  sx={{ width: 32, height: 32, bgcolor: 'primary.main', borderRadius: 1 }}
-                >
-                  {currentUser?.name?.charAt(0).toUpperCase()}
-                </Avatar>
-                <Typography
-                  sx={{ 
-                    ml: 1, 
-                    textTransform: 'none',
-                    display: { xs: 'none', sm: 'block' }
-                  }}
-                >
-                  {currentUser?.name}
-                </Typography>
-              </Box>
-            )}
-
-            {/* Menu button for small screens */}
-            {isAuthenticated && !isLargeScreen && (
-              <IconButton
-                color="primary"
-                onClick={toggleDropdown}
-                sx={{ ml: 1 }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
-          </Toolbar>
-        </Container>
-      </AppBar>
-      
-      {/* Full-width dropdown for small screens */}
-      <Collapse in={dropdownOpen && !isLargeScreen} timeout="auto">
+    <AppBar position="static" sx={{ height: height || 48, boxShadow: 1 }}>
+      <Toolbar variant="dense" sx={{ justifyContent: 'space-between', height: '100%', minHeight: 'unset' }}>
+        {/* Logo and Brand name */}
         <Box 
+          component={Link} 
+          to="/" 
           sx={{ 
-            position: 'absolute',
-            zIndex: 1100,
-            width: '100%', 
-            backgroundColor: theme.palette.background.paper,
-            borderColor: theme.palette.background.default,
-            borderBottom: `1px solid ${theme.palette.divider}`,
-            boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)'
+            display: 'flex', 
+            alignItems: 'center', 
+            textDecoration: 'none', 
+            color: 'inherit' 
           }}
         >
-          <Container maxWidth="xl">
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                py: 2,
-                gap: 1,
-              }}
-            >
-              <Button
-                color="primary"
-                startIcon={<MovieIcon />}
-                onClick={() => navigateTo('/movies')}
-                sx={{ textTransform: 'none' }}
-                fullWidth
-              >
-                Movies
-              </Button>
-              
-              <Button
-                color="primary"
-                startIcon={<PeopleOutline />}
-                onClick={() => navigateTo('/friends')}
-                sx={{ textTransform: 'none' }}
-                fullWidth
-              >
-                Friends
-              </Button>
-              
-              <Button
-                color="primary"
-                startIcon={<CompareIcon />}
-                onClick={() => navigateTo('/comparison')}
-                sx={{ textTransform: 'none' }}
-                fullWidth
-              >
-                Comparison
-              </Button>
-              
-              <Button
-                color="primary"
-                startIcon={<LogoutIcon />}
-                onClick={handleLogout}
-                sx={{ textTransform: 'none' }}
-                fullWidth
-              >
-                Logout
-              </Button>
-            </Box>
-          </Container>
+          <MovieIcon sx={{ mr: 0.5, fontSize: '1.2rem' }} />
+          <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold' }}>
+            MovieApp
+          </Typography>
         </Box>
-      </Collapse>
-    </>
+
+        {/* Desktop Navigation */}
+        {!isMobile ? (
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* Navigation links - only show when logged in */}
+            {isLoggedIn && (
+              <Box sx={{ display: 'flex', mx: 2 }}>
+                {navItems.map((item) => (
+                  <Button
+                    key={item.name}
+                    component={Link}
+                    to={item.path}
+                    color="inherit"
+                    size="small"
+                    sx={{ 
+                      mx: 1,
+                      borderBottom: isActive(item.path) ? '2px solid white' : 'none',
+                      borderRadius: 0,
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                      }
+                    }}
+                    startIcon={item.icon}
+                  >
+                    {item.name}
+                  </Button>
+                ))}
+              </Box>
+            )}
+
+            {/* User Profile Icon - only if logged in */}
+            {isLoggedIn && (
+              <Box>
+                <IconButton
+                  size="small"
+                  edge="end"
+                  color="inherit"
+                  aria-label="account of current user"
+                  aria-controls="menu-appbar"
+                  aria-haspopup="true"
+                  onClick={handleProfileMenuOpen}
+                >
+                  <AccountCircle />
+                </IconButton>
+
+                <Menu
+                  id="user-menu"
+                  anchorEl={anchorEl}
+                  open={open}
+                  onClose={handleMenuClose}
+                  PaperProps={{
+                    elevation: 3,
+                    sx: { 
+                      minWidth: 180,
+                      mt: 1
+                    }
+                  }}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                  {/* Regular user menu items */}
+                  {userMenuItems.map((item) => (
+                    <MenuItem 
+                      key={item.name} 
+                      component={Link} 
+                      to={item.path}
+                      onClick={handleMenuClose}
+                      dense
+                    >
+                      <ListItemIcon sx={{ minWidth: 36 }}>
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText>{item.name}</ListItemText>
+                    </MenuItem>
+                  ))}
+                  
+                  {/* Logout menu item */}
+                  <MenuItem 
+                    onClick={handleLogout}
+                    dense
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <LogoutIcon />
+                    </ListItemIcon>
+                    <ListItemText>Logout</ListItemText>
+                  </MenuItem>
+                </Menu>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          /* Mobile menu icon */
+          <Box>
+            <IconButton
+              size="small"
+              edge="end"
+              color="inherit"
+              aria-label="menu"
+              onClick={handleMobileMenuOpen}
+            >
+              <MenuIcon fontSize="small" />
+            </IconButton>
+            
+            <Menu
+              id="mobile-menu"
+              anchorEl={mobileMenuAnchor}
+              open={mobileMenuOpen}
+              onClose={handleMobileMenuClose}
+              PaperProps={{
+                elevation: 3,
+                sx: { minWidth: 180 }
+              }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+              {/* Navigation Items - only when logged in */}
+              {isLoggedIn && navItems.map((item) => (
+                <MenuItem 
+                  key={item.name} 
+                  component={Link} 
+                  to={item.path}
+                  onClick={handleMobileMenuClose}
+                  selected={isActive(item.path)}
+                  dense
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText>{item.name}</ListItemText>
+                </MenuItem>
+              ))}
+              
+              {/* Regular user menu items */}
+              {isLoggedIn && userMenuItems.map((item) => (
+                <MenuItem 
+                  key={item.name} 
+                  component={Link} 
+                  to={item.path}
+                  onClick={handleMobileMenuClose}
+                  dense
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText>{item.name}</ListItemText>
+                </MenuItem>
+              ))}
+              
+              {/* Logout menu item */}
+              {isLoggedIn && (
+                <MenuItem 
+                  onClick={handleLogout}
+                  dense
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <LogoutIcon />
+                  </ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              )}
+            </Menu>
+          </Box>
+        )}
+      </Toolbar>
+    </AppBar>
   );
 };
 

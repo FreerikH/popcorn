@@ -14,8 +14,6 @@ import {
 } from '@mui/material';
 import { LockOutlined, EmailOutlined, PersonOutlined } from '@mui/icons-material';
 
-import theme from '../theme'
-
 interface RegisterFormProps {
   onRegisterSuccess?: () => void;
   onSwitchToLogin?: () => void;
@@ -67,8 +65,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess, onSwitch
           mt: 4,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          backgroundColor: theme.palette.secondary.main
+          alignItems: 'center'
         }}
       >
         <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
